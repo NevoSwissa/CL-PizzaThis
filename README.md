@@ -1,3 +1,9 @@
+If you want to support me making those scripts
+Plese consider a donation
+
+https://ko-fi.com/nevoswissa
+
+____________
 CL-PizzaThis
 
 Thank you for downloading the script please follow this steps before running the script:
