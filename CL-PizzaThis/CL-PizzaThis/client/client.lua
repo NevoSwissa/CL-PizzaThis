@@ -159,17 +159,6 @@ RegisterNetEvent('CL-Pizzeria:WashHands', function(data)
 	end)
 end)
 
-RegisterNetEvent("CL-Pizzeria:OpenStash", function()
-	QBCore.Functions.TriggerCallback('CL-Pizzeria:CheckDuty', function(result)
-		if result then
-			TriggerServerEvent("inventory:server:OpenInventory", "stash", "Pizza This Stash", {maxweight = 100000, slots = 100})
-			TriggerEvent("inventory:client:SetCurrentStash", "Pizza This Stash") 
-		else
-			QBCore.Functions.Notify(Config.Locals["Notifications"]["MustBeOnDuty"], "error")
-		end
-	end)
-end)
-
 RegisterNetEvent('CL-Pizzeria:OpenBossStash', function()
 	QBCore.Functions.TriggerCallback('CL-Pizzeria:CheckDuty', function(result)
 		if result then
@@ -179,10 +168,6 @@ RegisterNetEvent('CL-Pizzeria:OpenBossStash', function()
 			QBCore.Functions.Notify(Config.Locals["Notifications"]["MustBeOnDuty"], "error")
 		end
 	end)
-end)
-
-RegisterNetEvent('CL-Pizzeria:OpenFridge', function()
-	TriggerServerEvent("inventory:server:OpenInventory", "shop", "Fridge", Config.FridgeItems)
 end)
 
 RegisterNetEvent('CL-Pizzeria:OpenFoodFridge', function()
@@ -541,11 +526,19 @@ Citizen.CreateThread(function()
 		}, {
 			options = { 
 			{
-				type = "client",
-				event = "CL-Pizzeria:OpenStash",
 				icon = Config.Locals['Targets']['Stash']['Icon'],
 				label = Config.Locals['Targets']['Stash']['Label'],
 				job = Config.Job,
+				action = function()
+					QBCore.Functions.TriggerCallback('CL-Pizzeria:CheckDuty', function(result)
+						if result then
+							TriggerServerEvent("inventory:server:OpenInventory", "stash", "Pizza This Stash", {maxweight = 100000, slots = 100})
+							TriggerEvent("inventory:client:SetCurrentStash", "Pizza This Stash") 
+						else
+							QBCore.Functions.Notify(Config.Locals["Notifications"]["MustBeOnDuty"], "error")
+						end
+					end)
+				end,
 			},
 		},
 		distance = 1.2,
@@ -729,11 +722,12 @@ Citizen.CreateThread(function()
 	}, {
 		options = { 
 			{
-				type = "client",
-				event = "CL-Pizzeria:OpenFridge",
 				icon = Config.Locals['Targets']['Fridge']['Icon'],
 				label = Config.Locals['Targets']['Fridge']['Label'],
 				job = Config.Job,
+				action = function()
+					TriggerServerEvent("inventory:server:OpenInventory", "shop", "Fridge", Config.FridgeItems)
+				end,
 			},
 		},
 		distance = 1.2,

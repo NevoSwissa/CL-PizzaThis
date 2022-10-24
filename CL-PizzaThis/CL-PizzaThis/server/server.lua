@@ -243,6 +243,8 @@ end)
 RegisterServerEvent("CL-Pizzeria:AddItem", function(item, amount)
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
+    local totalWeight = QBCore.Player.GetTotalWeight(Player.PlayerData.items)
+    local itemInfo = QBCore.Shared.Items[item:lower()]
     if itemInfo then
         if (totalWeight + (itemInfo['weight'] * amount)) <= Config.MaxInventoryWeight then
             Player.Functions.AddItem(item, amount, false)
