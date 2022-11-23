@@ -240,11 +240,71 @@ QBCore.Functions.CreateCallback('CL-Pizzeria:CheckDuty', function(source, cb)
 	end
 end)
 
-RegisterServerEvent('CL-Pizzeria:ResetDuty', function()
-	local src = source
-	local Player = QBCore.Functions.GetPlayer(src)
+RegisterServerEvent("CL-Pizzeria:AddItem", function(item, amount)
+    local src = source
+    local Player = QBCore.Functions.GetPlayer(src)
+    local totalWeight = QBCore.Player.GetTotalWeight(Player.PlayerData.items)
+    local itemInfo = QBCore.Shared.Items[item:lower()]
+    if itemInfo then
+        if (totalWeight + (itemInfo['weight'] * amount)) <= Config.MaxInventoryWeight then
+            Player.Functions.AddItem(item, amount, false)
+        else
+            TriggerClientEvent('QBCore:Notify', src, Config.Locals['Notifications']['InventoryFull'], "error")
+        end
+    else
+        TriggerClientEvent('QBCore:Notify', src, Config.Locals['Notifications']['ItemNotExists'], "error")
+    end
+end)
 
-    Player.Functions.SetJobDuty(false)  
+RegisterNetEvent('CL-Pizzeria:AddThirst', function(amount)
+    local Player = QBCore.Functions.GetPlayer(source)
+    if not Player then return end
+    Player.Functions.SetMetaData('thirst', amount)
+    TriggerClientEvent('hud:client:UpdateNeeds', source, Player.PlayerData.metadata.hunger, amount)
+end)
+
+RegisterNetEvent('CL-Pizzeria:AddHunger', function(amount)
+    local Player = QBCore.Functions.GetPlayer(source)
+    if not Player then return end
+    Player.Functions.SetMetaData('hunger', amount)
+    TriggerClientEvent('hud:client:UpdateNeeds', source, amount, Player.PlayerData.metadata.thirst)
+end)
+
+QBCore.Functions.CreateCallback('CL-Pizzeria:HasItem', function(source, cb, item, amount)
+    local src = source
+    local Player = QBCore.Functions.GetPlayer(src)
+    local GetItem = Player.Functions.GetItemByName(item)
+    if GetItem ~= nil then
+        if amount then
+            if GetItem.amount >= amount then
+                cb(true)
+            else
+                cb(false)
+            end        
+        else
+            if GetItem.amount then
+                cb(true)
+            else
+                cb(false)
+            end
+        end
+    else
+        cb(false)
+    end
+end)
+
+RegisterServerEvent("CL-Pizzeria:RemoveItem", function(item, amount)
+    local src = source
+    local Player = QBCore.Functions.GetPlayer(src)
+    local GetItem = Player.Functions.GetItemByName(item)
+    -- if you give the event amount it will only remove that amount if not it will remove everything you have in your inventory from that item
+    if GetItem ~= nil then
+        if amount then
+            Player.Functions.RemoveItem(item, amount, false)
+        else
+            Player.Functions.RemoveItem(item, GetItem.amount, false)
+        end
+    end
 end)
 
 RegisterServerEvent('CL-Pizzeria:TakeMoney', function(data)

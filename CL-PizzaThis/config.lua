@@ -4,17 +4,17 @@ Config.Job = 'pizzeria' -- Name for the job that can access the target etc
 
 Config.UseBlips = true -- Set to false to disable blips
 
+Config.MaxInventoryWeight = 120000 -- Set that to your max inventory weight, by defualt 120000
+
 Config.PolyZone = false -- Set to true to activate polygon zones
+
+Config.ConsumablesVersion = "new" -- Not sure if its got updated buut i noticed that QBCore:Server:SetMetaData isnt working anymore, If you still want to use this event change it to : "old"
 
 Config.Target = 'qb-target' -- Name for the target
 
 Config.WashingHandsStress = 3.0 -- How much stress is decreased when washing hands
 
 Config.MarkerDistance = 5.0 -- How much distance from the marker will the player be able to interact with the garage? more = more MS less = less MS
-
-Config.BlipLocation = {
-    {title = "Pizzeria", colour = 1, id = 267, x = 804.35949, y = -750.9271, z = 26.78083},  -- Pizzeria Place Blip
-}
 
 Config.Thirst = {
     Champagne = 10,
@@ -85,6 +85,17 @@ Config.DutyObjects = {
 }
 
 Config.Locations = {
+    General = {
+        Blips = {
+            [1] = {
+                Title = "Pizzeria", 
+                BlipColour = 1, 
+                BlipId = 267,
+                Coords = vector3(804.35949, -750.9271, 26.78083)
+            },
+        },
+    },
+    
     Garage = {
         Marker = vector3(809.99035, -732.4, 27.5977),
     },
@@ -799,10 +810,12 @@ Config.Locals = {
     },
 
     Notifications = {
+        ItemNotExists = "Item doesnt exists.",
         VehicleStored = 'Vehicle Stored !',
         NotInAnyVehicle = 'You are not in any vehicle !',
         MustBeOnDuty = 'You must be on duty !',
         VehicleBought = 'Vehicle Successfully Bought',
+        InventoryFull = "Your inventory is full",
         DontHaveEnoughMoney = 'You don\'t have enough money !',
         ChairIsUsed = "Chair Is Being Used.",
         NoIngredients = "You don't have the right ingredients !",

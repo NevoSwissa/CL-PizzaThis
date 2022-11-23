@@ -1,6 +1,6 @@
 local QBCore = exports['qb-core']:GetCoreObject()
 
-PlayerJob = {}
+local PlayerJob = {}
 
 local drinked = 0
 
@@ -11,8 +11,7 @@ local ClipBoardSpawned = false
 ----------------
 ----Handlers
 ----------------
-RegisterNetEvent('QBCore:Client:OnPlayerLoaded')
-AddEventHandler('QBCore:Client:OnPlayerLoaded', function()
+RegisterNetEvent('QBCore:Client:OnPlayerLoaded', function()
 	QBCore.Functions.GetPlayerData(function(PlayerData)
 		PlayerJob = PlayerData.job
 	end)
@@ -21,47 +20,39 @@ AddEventHandler('QBCore:Client:OnPlayerLoaded', function()
 	end
 end)
 
-RegisterNetEvent('QBCore:Client:OnJobUpdate')
-AddEventHandler('QBCore:Client:OnJobUpdate', function(JobInfo)
+RegisterNetEvent('QBCore:Client:OnJobUpdate', function(JobInfo)
     PlayerJob = JobInfo
 end)
 
-AddEventHandler('onClientResourceStart',function(resource)
-	if GetCurrentResourceName() == resource then
-		Citizen.CreateThread(function()
-			while true do
-				QBCore.Functions.GetPlayerData(function(PlayerData)
-					if PlayerData.job then
-						PlayerJob = PlayerData.job
-						QBCore.Functions.TriggerCallback('CL-Pizzeria:CheckDuty', function(result)
-							if result then
-								TriggerServerEvent("CL-Pizzeria:ResetDuty")
-							end
-						end)
-					end
-				end)
-				break
+AddEventHandler('onResourceStart', function(resource)
+    if GetCurrentResourceName() == resource then
+		PlayerJob = QBCore.Functions.GetPlayerData().job
+		QBCore.Functions.GetPlayerData(function(PlayerData)
+			PlayerJob = PlayerData.job
+			if PlayerData.job.onduty then
+				if PlayerData.job.name == Config.Job then
+					TriggerServerEvent("QBCore:ToggleDuty")
+				end
 			end
-			Citizen.Wait(1)
 		end)
-	end
+    end
 end)
 
 ----------------
 ----Blips
 ----------------
 Citizen.CreateThread(function()
-	for _, info in pairs(Config.BlipLocation) do
+	for k, v in pairs(Config.Locations['General']['Blips']) do
 		if Config.UseBlips then
-			info.blip = AddBlipForCoord(info.x, info.y, info.z)
-			SetBlipSprite(info.blip, info.id)
-			SetBlipDisplay(info.blip, 4)
-			SetBlipScale(info.blip, 0.6)	
-			SetBlipColour(info.blip, info.colour)
-			SetBlipAsShortRange(info.blip, true)
+			Blip = AddBlipForCoord(v.Coords.x, v.Coords.y, v.Coords.z)
+			SetBlipSprite(Blip, v.BlipId)
+			SetBlipDisplay(Blip, 4)
+			SetBlipScale(Blip, 0.6)	
+			SetBlipColour(Blip, v.BlipColour)
+			SetBlipAsShortRange(Blip, true)
 			BeginTextCommandSetBlipName("STRING")
-			AddTextComponentString(info.title)
-			EndTextCommandSetBlipName(info.blip)
+			AddTextComponentString(v.Title)
+			EndTextCommandSetBlipName(Blip)
 		end
 	end	
 end)
@@ -168,17 +159,6 @@ RegisterNetEvent('CL-Pizzeria:WashHands', function(data)
 	end)
 end)
 
-RegisterNetEvent("CL-Pizzeria:OpenStash", function()
-	QBCore.Functions.TriggerCallback('CL-Pizzeria:CheckDuty', function(result)
-		if result then
-			TriggerServerEvent("inventory:server:OpenInventory", "stash", "Pizza This Stash", {maxweight = 100000, slots = 100})
-			TriggerEvent("inventory:client:SetCurrentStash", "Pizza This Stash") 
-		else
-			QBCore.Functions.Notify(Config.Locals["Notifications"]["MustBeOnDuty"], "error")
-		end
-	end)
-end)
-
 RegisterNetEvent('CL-Pizzeria:OpenBossStash', function()
 	QBCore.Functions.TriggerCallback('CL-Pizzeria:CheckDuty', function(result)
 		if result then
@@ -188,10 +168,6 @@ RegisterNetEvent('CL-Pizzeria:OpenBossStash', function()
 			QBCore.Functions.Notify(Config.Locals["Notifications"]["MustBeOnDuty"], "error")
 		end
 	end)
-end)
-
-RegisterNetEvent('CL-Pizzeria:OpenFridge', function()
-	TriggerServerEvent("inventory:server:OpenInventory", "shop", "Fridge", Config.FridgeItems)
 end)
 
 RegisterNetEvent('CL-Pizzeria:OpenFoodFridge', function()
@@ -216,7 +192,7 @@ RegisterNetEvent("CL-Pizzeria:OpenPersonalStash", function()
 end)
 
 RegisterNetEvent("CL-Pizzeria:MakeDrink", function(data)
-    QBCore.Functions.TriggerCallback('QBCore:HasItem', function(result)
+    QBCore.Functions.TriggerCallback('CL-Pizzeria:HasItem', function(result)
         if result then
             QBCore.Functions.Progressbar("make_"..data.drink, "Pouring " ..data.drinkname, 5000, false, true, {
 				disableMovement = true,
@@ -229,8 +205,8 @@ RegisterNetEvent("CL-Pizzeria:MakeDrink", function(data)
 				flags = 49,
 			}, {}, {}, function()
                 QBCore.Functions.Notify(data.drinkname .. " Successfully Made", "success")
-                TriggerServerEvent("QBCore:Server:RemoveItem", data.glass, 1)
-                TriggerServerEvent("QBCore:Server:AddItem", data.drink, 1)
+                TriggerServerEvent("CL-Pizzeria:RemoveItem", data.glass, 1)
+                TriggerServerEvent("CL-Pizzeria:AddItem", data.drink, 1)
 				TriggerEvent("inventory:client:ItemBox", QBCore.Shared.Items[data.drink], "add")
 			end, function()
 				QBCore.Functions.Notify("Canceled...", "error")
@@ -254,8 +230,12 @@ RegisterNetEvent("CL-Pizzeria:Drink", function(item, ischampagne, itemname, anim
 			flags = 49,
 		}, {}, {}, function()
 			QBCore.Functions.Notify("You Have Drank " ..itemname, "success")
-			TriggerServerEvent("QBCore:Server:SetMetaData", "thirst", QBCore.Functions.GetPlayerData().metadata["thirst"] + Config.Thirst["Champagne"])
-			TriggerServerEvent("QBCore:Server:RemoveItem", item, 1)
+			if Config.ConsumablesVersion == "old" then
+				TriggerServerEvent("QBCore:Server:SetMetaData", "thirst", QBCore.Functions.GetPlayerData().metadata["thirst"] + Config.Thirst["Champagne"])
+			elseif Config.ConsumablesVersion == "new" then
+				TriggerServerEvent("CL-Pizzeria:AddThirst", QBCore.Functions.GetPlayerData().metadata["thirst"] + Config.Thirst["Champagne"])
+			end	
+			TriggerServerEvent("CL-Pizzeria:RemoveItem", item, 1)
 			AlcoholEffect()
 		end, function()
 			QBCore.Functions.Notify("Canceled...", "error")
@@ -276,8 +256,12 @@ RegisterNetEvent("CL-Pizzeria:Drink", function(item, ischampagne, itemname, anim
 			coords = { x=coords.x, y=coords.y, z=coords.z },
 		}, {}, function()
 			QBCore.Functions.Notify("You Have Drank " ..itemname, "success")
-			TriggerServerEvent("QBCore:Server:SetMetaData", "thirst", QBCore.Functions.GetPlayerData().metadata["thirst"] + thirst)
-			TriggerServerEvent("QBCore:Server:RemoveItem", item, 1)
+			if Config.ConsumablesVersion == "old" then
+				TriggerServerEvent("QBCore:Server:SetMetaData", "thirst", QBCore.Functions.GetPlayerData().metadata["thirst"] + thirst)
+			elseif Config.ConsumablesVersion == "new" then
+				TriggerServerEvent("CL-Pizzeria:AddThirst", QBCore.Functions.GetPlayerData().metadata["thirst"] + thirst)
+			end
+			TriggerServerEvent("CL-Pizzeria:RemoveItem", item, 1)
 			drinked = drinked + 1
 			if drinked >= 3 then
 				QBCore.Functions.Notify(Config.Locals["Notifications"]["DrinkedEnough"])
@@ -302,7 +286,7 @@ RegisterNetEvent("CL-Pizzeria:Grab", function(data)
         flags = 49,
     }, {}, {}, function()
         QBCore.Functions.Notify("You grabbed " ..data.gdrinkname, "success")
-        TriggerServerEvent("QBCore:Server:AddItem", data.gdrink, 1)
+        TriggerServerEvent("CL-Pizzeria:AddItem", data.gdrink, 1)
         TriggerEvent("inventory:client:ItemBox", QBCore.Shared.Items[data.gdrink], "add")
 		if data.dough then
 			dough = dough - 1
@@ -327,22 +311,22 @@ RegisterNetEvent("CL-Pizzeria:Make", function(data)
 					flags = 49,
 				}, {}, {}, function()
 					if data.item4 then
-						TriggerServerEvent("QBCore:Server:RemoveItem", data.item4, 1)
+						TriggerServerEvent("CL-Pizzeria:RemoveItem", data.item4, 1)
 						TriggerEvent("inventory:client:ItemBox", QBCore.Shared.Items[data.item4], "remove")
 					end
 					if data.item5 then
-						TriggerServerEvent("QBCore:Server:RemoveItem", data.item5, 1)
+						TriggerServerEvent("CL-Pizzeria:RemoveItem", data.item5, 1)
 						TriggerEvent("inventory:client:ItemBox", QBCore.Shared.Items[data.item5], "remove")
 					end
 					if data.item6 then
-						TriggerServerEvent("QBCore:Server:RemoveItem", data.item6, 1)
+						TriggerServerEvent("CL-Pizzeria:RemoveItem", data.item6, 1)
 						TriggerEvent("inventory:client:ItemBox", QBCore.Shared.Items[data.item6], "remove")
 					end
-					TriggerServerEvent("QBCore:Server:RemoveItem", data.item2, 1)
+					TriggerServerEvent("CL-Pizzeria:RemoveItem", data.item2, 1)
 					TriggerEvent("inventory:client:ItemBox", QBCore.Shared.Items[data.item2], "remove")
-					TriggerServerEvent("QBCore:Server:RemoveItem", data.item3, 1)
+					TriggerServerEvent("CL-Pizzeria:RemoveItem", data.item3, 1)
 					TriggerEvent("inventory:client:ItemBox", QBCore.Shared.Items[data.item3], "remove")
-					TriggerServerEvent("QBCore:Server:AddItem", data.recieveitem, data.number)
+					TriggerServerEvent("CL-Pizzeria:AddItem", data.recieveitem, data.number)
 					TriggerEvent("inventory:client:ItemBox", QBCore.Shared.Items[data.recieveitem], "add")
 				end, function()
 					QBCore.Functions.Notify("Canceled...", "error")
@@ -352,7 +336,7 @@ RegisterNetEvent("CL-Pizzeria:Make", function(data)
 			end
 		end)
 	else
-		QBCore.Functions.TriggerCallback('QBCore:HasItem', function(HasItems)
+		QBCore.Functions.TriggerCallback('CL-Pizzeria:HasItem', function(HasItems)
 			if HasItems then
 				QBCore.Functions.Progressbar("make", "Making "..data.itemname, data.time, false, true, {
 					disableMovement = true,
@@ -365,18 +349,18 @@ RegisterNetEvent("CL-Pizzeria:Make", function(data)
 					flags = 49,
 				}, {}, {}, function()
 					if data.item4 then
-						TriggerServerEvent("QBCore:Server:RemoveItem", data.item4, 1)
+						TriggerServerEvent("CL-Pizzeria:RemoveItem", data.item4, 1)
 						TriggerEvent("inventory:client:ItemBox", QBCore.Shared.Items[data.item4], "remove")
 					elseif data.item5 then
-						TriggerServerEvent("QBCore:Server:RemoveItem", data.item5, 1)
+						TriggerServerEvent("CL-Pizzeria:RemoveItem", data.item5, 1)
 						TriggerEvent("inventory:client:ItemBox", QBCore.Shared.Items[data.item5], "remove")
 					elseif data.item6 then
-						TriggerServerEvent("QBCore:Server:RemoveItem", data.item6, 1)
+						TriggerServerEvent("CL-Pizzeria:RemoveItem", data.item6, 1)
 						TriggerEvent("inventory:client:ItemBox", QBCore.Shared.Items[data.item6], "remove")
 					end
-					TriggerServerEvent("QBCore:Server:RemoveItem", data.item2, 1)
+					TriggerServerEvent("CL-Pizzeria:RemoveItem", data.item2, 1)
 					TriggerEvent("inventory:client:ItemBox", QBCore.Shared.Items[data.item2], "remove")
-					TriggerServerEvent("QBCore:Server:AddItem", data.recieveitem, data.number)
+					TriggerServerEvent("CL-Pizzeria:AddItem", data.recieveitem, data.number)
 					TriggerEvent("inventory:client:ItemBox", QBCore.Shared.Items[data.recieveitem], "add")
 				end, function()
 					QBCore.Functions.Notify("Canceled...", "error")
@@ -404,13 +388,13 @@ RegisterNetEvent('CL-Pizzeria:OpenMenu', function()
 end)
 
 RegisterNetEvent("CL-Pizzeria:AddDough", function()
-	QBCore.Functions.TriggerCallback('QBCore:HasItem', function(result)
+	QBCore.Functions.TriggerCallback('CL-Pizzeria:HasItem', function(result)
 		if result then
 			if dough >= 12 then
 				QBCore.Functions.Notify(Config.Locals["Notifications"]["StorageFull"], "error")
 			else
 				dough = dough + 1
-				TriggerServerEvent("QBCore:Server:RemoveItem", "pdough", 1)
+				TriggerServerEvent("CL-Pizzeria:RemoveItem", "pdough", 1)
 				TriggerEvent("inventory:client:ItemBox", QBCore.Shared.Items["pdough"], "remove")
 				QBCore.Functions.Notify(Config.Locals["Notifications"]["DoughAdded"], "success")
 			end
@@ -437,9 +421,13 @@ RegisterNetEvent("CL-Pizzeria:Eat", function(fruit, item, itemname, time, hunger
 			coords = { x=coords.x, y=coords.y, z=coords.z },
 		}, {}, function()
 			QBCore.Functions.Notify("You eated " ..itemname, "success")
-			TriggerServerEvent("QBCore:Server:RemoveItem", item, 1)
+			TriggerServerEvent("CL-Pizzeria:RemoveItem", item, 1)
 			TriggerEvent("inventory:client:ItemBox", QBCore.Shared.Items[item], "remove")
-			TriggerServerEvent("QBCore:Server:SetMetaData", "hunger", QBCore.Functions.GetPlayerData().metadata["hunger"] + hunger)
+			if Config.ConsumablesVersion == "old" then
+				TriggerServerEvent("QBCore:Server:SetMetaData", "hunger", QBCore.Functions.GetPlayerData().metadata["hunger"] + hunger)
+			elseif Config.ConsumablesVersion == "new" then
+				TriggerServerEvent("CL-Pizzeria:AddHunger", QBCore.Functions.GetPlayerData().metadata["hunger"] + hunger)
+			end
 		end, function()
 			QBCore.Functions.Notify("Canceled...", "error")
 		end)
@@ -455,18 +443,17 @@ RegisterNetEvent("CL-Pizzeria:Eat", function(fruit, item, itemname, time, hunger
 			flags = 49,
 		}, {}, {}, function()
 			QBCore.Functions.Notify("You eated " ..itemname, "success")
-			TriggerServerEvent("QBCore:Server:RemoveItem", item, 1)
+			TriggerServerEvent("CL-Pizzeria:RemoveItem", item, 1)
 			TriggerEvent("inventory:client:ItemBox", QBCore.Shared.Items[item], "remove")
-			TriggerServerEvent("QBCore:Server:SetMetaData", "hunger", QBCore.Functions.GetPlayerData().metadata["hunger"] + hunger)
+			if Config.ConsumablesVersion == "old" then
+				TriggerServerEvent("QBCore:Server:SetMetaData", "hunger", QBCore.Functions.GetPlayerData().metadata["hunger"] + hunger)
+			elseif Config.ConsumablesVersion == "new" then
+				TriggerServerEvent("CL-Pizzeria:AddHunger", hunger)
+			end
 		end, function()
 			QBCore.Functions.Notify("Canceled...", "error")
 		end)
 	end
-end)
-
-RegisterNetEvent("CL-Pizzeria:OpenTray", function(data)
-	TriggerServerEvent("inventory:server:OpenInventory", "stash", "PizzaThis "..data.number.." Tray", {maxweight = 30000, slots = 10})
-	TriggerEvent("inventory:client:SetCurrentStash", "PizzaThis "..data.number.." Tray") 
 end)
 
 Citizen.CreateThread(function()
@@ -539,11 +526,19 @@ Citizen.CreateThread(function()
 		}, {
 			options = { 
 			{
-				type = "client",
-				event = "CL-Pizzeria:OpenStash",
 				icon = Config.Locals['Targets']['Stash']['Icon'],
 				label = Config.Locals['Targets']['Stash']['Label'],
 				job = Config.Job,
+				action = function()
+					QBCore.Functions.TriggerCallback('CL-Pizzeria:CheckDuty', function(result)
+						if result then
+							TriggerServerEvent("inventory:server:OpenInventory", "stash", "Pizza This Stash", {maxweight = 100000, slots = 100})
+							TriggerEvent("inventory:client:SetCurrentStash", "Pizza This Stash") 
+						else
+							QBCore.Functions.Notify(Config.Locals["Notifications"]["MustBeOnDuty"], "error")
+						end
+					end)
+				end,
 			},
 		},
 		distance = 1.2,
@@ -727,11 +722,12 @@ Citizen.CreateThread(function()
 	}, {
 		options = { 
 			{
-				type = "client",
-				event = "CL-Pizzeria:OpenFridge",
 				icon = Config.Locals['Targets']['Fridge']['Icon'],
 				label = Config.Locals['Targets']['Fridge']['Label'],
 				job = Config.Job,
+				action = function()
+					TriggerServerEvent("inventory:server:OpenInventory", "shop", "Fridge", Config.FridgeItems)
+				end,
 			},
 		},
 		distance = 1.2,
@@ -941,11 +937,12 @@ Citizen.CreateThread(function()
             }, {
                 options = { 
                 {
-                    type = "client",
-					event = "CL-Pizzeria:OpenTray",
 					icon = Config.Locals['Targets']['Tray']['Icon'],
 					label = Config.Locals['Targets']['Tray']['Label'],
-					number = k,
+					action = function()
+						TriggerServerEvent("inventory:server:OpenInventory", "stash", "PizzaThis "..k.." Tray", {maxweight = 30000, slots = 10})
+						TriggerEvent("inventory:client:SetCurrentStash", "PizzaThis "..k.." Tray") 
+					end,
                 }
             },
             distance = 1.2,
