@@ -754,6 +754,28 @@ Citizen.CreateThread(function()
         })
     end
 
+	exports[Config.Target]:AddBoxZone("PizzaThis-Bossmenu", vector3(Config.Locations["Bossmenu"]["Coords"].x, Config.Locations["Bossmenu"]["Coords"].y, Config.Locations["Bossmenu"]["Coords"].z), 1.2, 2.6, {
+		name = "PizzaThis-Bossmenu",
+		heading = Config.Locations["Bossmenu"]["Heading"],
+		debugPoly = Config.PolyZone,
+		minZ = Config.Locations["Bossmenu"]["minZ"],
+		maxZ = Config.Locations["Bossmenu"]["maxZ"],
+	}, {
+		options = { 
+			{
+				type = "client",
+				event = "qb-bossmenu:client:OpenMenu",
+				icon = Config.Locals['Targets']['Bossmenu']['Icon'],
+				label = Config.Locals['Targets']['Bossmenu']['Label'],
+				job = Config.Job,
+				canInteract = function() 
+					return PlayerJob.isboss
+				end,
+			},
+		},
+		distance = 1.2,
+	})
+
 	exports[Config.Target]:AddBoxZone("Dough", vector3(Config.Locations["Dough"]["Coords"].x, Config.Locations["Dough"]["Coords"].y, Config.Locations["Dough"]["Coords"].z), 0.6, 0.6, {
 		name = "Dough",
 		heading = Config.Locations["Dough"]["Heading"],

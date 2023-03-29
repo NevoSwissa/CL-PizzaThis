@@ -114,6 +114,13 @@ Config.Locations = {
         maxZ = 26.63333,
     },
 
+    Bossmenu = {
+        Coords = vector3(797.14, -749.01, 30.91),
+        Heading = 182.04,
+        minZ = 31.2,
+        maxZ = 30.2,
+    },
+
     Glasses = {
         Coords = vector3(813.85162, -751.1357, 26.881879),
         Heading = 269.55291,
@@ -845,6 +852,11 @@ Config.Locals = {
         Duty = {
             Icon = "fa fa-clock",
             Label = "Get On/Off Duty",
+        },
+
+        Bossmenu = {
+            Icon = "fas fa-sign-in-alt",
+            Label = "Boss Menu",
         },
 
         WashHands = {
