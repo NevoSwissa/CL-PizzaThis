@@ -109,5 +109,5 @@ go to "qb-core" then shared folder > jobs.lua and at least under line 4 :
 3 - Add images to inventory
 here you have images folder copy the images inside that folder and put it inside "qb-inventory"
 
-Have more questions / issues ? feel free to open a ticket in our discord server : https://discord.gg/kGPECGG27Q
+Have more questions / issues ? feel free to open a ticket in our discord server : [https://discord.gg/kGPECGG27Q](https://discord.gg/rp6ynCJTKK)
 
